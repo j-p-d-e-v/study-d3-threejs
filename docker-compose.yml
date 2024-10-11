@@ -1,0 +1,14 @@
+services:
+  d3jsweb:
+    image: node:latest
+    working_dir: /app
+    volumes:
+    - .:/app
+    tty: true
+    ports:
+    - "8080:80"
+    - "8081:81"
+    - "8082:82"
+    - "8083:83"
+    environment:
+    - NGINX_PORT=80
