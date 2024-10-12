@@ -37,8 +37,10 @@ export default {
 
       const simulation = d3.forceSimulation(nodes)
       .force("link",d3.forceLink(links).id((d) => d.id ))
-      .force("charge",d3.forceManyBody().strength(-25000))
+      .force("charge",d3.forceManyBody().strength(-20000))
       .force("center",d3.forceCenter(width/2, height/2))
+      .force("x",d3.forceX())
+      .force("y",d3.forceY())
       .on("tick",ticked);
 
       const svg = d3.create("svg")
@@ -54,9 +56,9 @@ export default {
       .data(links)      
       .join("line")
       .attr("class","links")
-      .attr("stroke-width", d => 1);
+      .attr("stroke-width", 1);
 
-      let node_radius = 30;
+      let node_radius = 40;
       const node = svg.append("g")
       .attr("stroke","#eb4034")
       .attr("stroke-width",1)
@@ -75,7 +77,7 @@ export default {
       .append("text")
       .text(d =>  d.ip )
       .style('text-anchor', 'middle')
-      .style('font-size', '12px');
+      .style('font-size', '11px');
 
       let target_link_label = svg.append("g")
       .attr("class","link-labels")
@@ -84,8 +86,8 @@ export default {
       .enter()
       .append("text")
       .text((d)=> d.target.id )
-      .style("text-anchor","middle")
-      .style("font-size","15px");
+      .style("text-anchor","end")
+      .style("font-size","11px");
 
       let source_link_label = svg.append("g")
       .attr("class","source-link-labels")
@@ -93,10 +95,11 @@ export default {
       .data(links)
       .enter()
       .append("text")
-      .text((d)=> d.source.id )
+      .text((d)=> d.source.id)
+      .style("fill","red")
       .style('font-weight', 'bold')
-      .style("text-anchor","middle")
-      .style("font-size","15px");
+      .style("text-anchor","start")
+      .style("font-size","11px");
 
       
       node.call(
@@ -105,15 +108,11 @@ export default {
         .on("end",dragEnded)
       );
 
-      function dragStarted(event){
-        if(!event.active) {
-          simulation.alphaTarget(1).restart();
-        }
-        console.log(event);
-        event.subject.fx = event.subject.x;
-        event.subject.fy = event.subject.y;
-      }
       function dragEnded(event){
+        if(!event.active) {
+          //Stops the Animation / Simulation
+          simulation.alphaTarget(0).restart();
+        }
         event.subject.fx = null;
         event.subject.fy = null;
         console.log(event)
@@ -125,6 +124,7 @@ export default {
       }
       function dragStarted(event){
         if(!event.active) {
+          //Starts the Animation/Simulation
           simulation.alphaTarget(1).restart();
         }
         console.log(event);
@@ -132,41 +132,22 @@ export default {
         event.subject.fy = event.subject.y;
       }
 
-      function getQuadrant(x,y){
-        if(x >= 0 && y >= 0){
-          // x positive, y positive
-          return 1;
-        }
-        else if(x < 0 && y >= 0){
-          // x negative, y positive
-          return 2;
-        }
-        else if(x < 0 && y < 0){
-          // x negative, y negative
-          return 3;
-        }
-        else if(x >= 0 && y < 0){
-          // x negative, y negative
-          return 4;
-        }
-        return null;
+      function getDegrees(x1,y1,x2,y2){
+          let degrees = getAngle(x1,y1,x2,y2) * (180 /Math.PI);
+          return degrees
       }
-      function flipDegrees(quandrant,degrees){
-        if(quandrant == 1){
-          return degrees = degrees - 90;
-        }
-        else if(quandrant == 2){
-          return degrees = degrees - 90;
-        }
-        else if(quandrant == 3){
-          return degrees = degrees - 180;
-        }
-        else if(quandrant == 4){
-          return degrees = degrees - 270;
+      
+      function getAngle(x1,y1,x2,y2){
+          let delta_x = x1 - x2;
+          let delta_y = y1 - y2;
+          return Math.atan2(delta_y,delta_x);
+      }
+      function inverseRotate(degrees){
+        if(degrees > 90 || degrees < -90){
+          return degrees + 180;
         }
         return degrees;
       }
-      
 
       function ticked(){
         link.attr("x1", d => d.source.x )
@@ -176,67 +157,28 @@ export default {
 
         node.attr("cx", d => d.x ).attr("cy", d => d.y );
         node_label.attr("x",d => d.x).attr("y", d => d.y );
-        //target_link_label.attr("x",d => d.target.x).attr("y", d => d.target.y);
 
         target_link_label.attr("transform", d => {
-
-          let delta_x = d.target.x - d.source.x;
-          let delta_y = d.target.y - d.source.y;
-          let pos_x = d.target.x;
-          let pos_y = d.target.y;
-          let middle_x = (d.target.x + d.source.x) / 2;
-          let middle_y = (d.target.y + d.source.y) / 2;
-          let angle = Math.atan2(delta_y,delta_x);
-          let degrees = angle * (180 /Math.PI);
-          //if(d.source.id == "ROUTER_A" && d.target.id == "ROUTER_E"){
-          //  console.log("TARGET==========================================");
-          //  console.log(`Source ${ d.source.id}:`, d.source);
-          //  console.log(`Target ${ d.target.id}:`, d.target);
-          //  console.log(`delta_x`,delta_x);
-          //  console.log(`delta_y`,delta_y);
-          //  console.log(`D ${d.source.id} -> ${d.target.id}`,degrees);
-          //  console.log(`A ${d.source.id} -> ${d.target.id}`,angle);
-          //  console.log(`AS ${d.source.id} -> ${d.target.id}`,Math.atan2(d.target.y,d.target.x) );
-          //  console.log(`AT ${d.source.id} -> ${d.target.id}`,Math.atan2(d.source.y,d.source.x) );
-          //  console.log("=========================================TARGET");
-          //}
-          if(degrees > 90 || degrees < -90){
-            degrees += 180;
-          }
-          pos_x = d.target.x + (d.target.x - d.source.x) * -0.25;
-          pos_y = d.target.y + (d.target.y - d.source.y) * -0.25;
+          let degrees = getDegrees(d.target.x,d.target.y,d.source.x,d.source.y);
+          //degrees = inverseRotate(degrees);
+          let pos_x = d.target.x + (Math.cos(getAngle(d.source.x,d.source.y,d.target.x,d.target.y)) * ((node_radius + 5)));
+          let pos_y = d.target.y + (Math.sin(getAngle(d.source.x,d.source.y,d.target.x,d.target.y)) * ((node_radius + 5)));          
           let style = `translate(${pos_x},${pos_y}),rotate(${degrees})`;
           return style;
         });
         source_link_label.attr("transform", d => {
-          let delta_x = d.source.x - d.target.x;
-          let delta_y = d.source.y - d.target.y;
-          let pos_x = d.source.x;
-          let pos_y = d.source.y;
-          let middle_x = (d.target.x + d.source.x) /2;
-          let middle_y = (d.target.y + d.source.y) /2;
-          let angle = Math.atan2(delta_y,delta_x);
-          let degrees = angle * (180 /Math.PI);
-          if(d.source.id == "ROUTER_A" && d.target.id == "ROUTER_D"){
+          let degrees = getDegrees(d.source.x,d.source.y,d.target.x,d.target.y);
+          //console.log(`SOURCE: ${ d.source.id} -> ${ d.target.id}==========================================`);
+          //console.log(`Source: ${d.source.x}, ${d.source.y}`);
+          //console.log(`Target: ${d.target.x}, ${d.target.y}`);
+          //console.log(`Degrees`,degrees);
+          //console.log("=========================================SOURCE");
+            if(d.source.id == "ROUTER_A12345433333333333" && d.target.id == "ROUTER_D12345433333333333"){
 
-            console.log("SOURCE==========================================");
-            console.log(`Source ${ d.source.id}:`, d.source);
-            console.log(`Target ${ d.target.id}:`, d.target);
-            console.log(`delta_x`,delta_x);
-            console.log(`delta_y`,delta_y);
-            console.log(`D ${d.source.id} -> ${d.target.id}`,degrees);
-            console.log(`A ${d.source.id} -> ${d.target.id}`,angle);
-            console.log(`AS ${d.source.id} -> ${d.target.id}`,Math.atan2(d.target.y,d.target.x) );
-            console.log(`AT ${d.source.id} -> ${d.target.id}`,Math.atan2(d.source.y,d.source.x) );
-            console.log(`Quadrant ${d.source.id} -> ${d.target.id}`,getQuadrant(delta_x,delta_y));
-
-            console.log("=========================================SOURCE");
-          }
-            if(degrees > 90 || degrees < -90){
-              degrees += 180;
             }
-            pos_x = d.source.x + ((d.target.x - d.source.x) * 0.25);
-            pos_y = d.source.y + ((d.target.y - d.source.y) * 0.25);
+          //degrees = inverseRotate(degrees);
+          let pos_x = d.source.x + (Math.cos(getAngle(d.target.x,d.target.y,d.source.x,d.source.y)) * ((node_radius * 4.30 )+ d.source.id.length ));
+          let pos_y = d.source.y + (Math.sin(getAngle(d.target.x,d.target.y,d.source.x,d.source.y)) * ((node_radius * 4.30 )+ d.source.id.length ));
           let style = `translate(${pos_x},${pos_y}),rotate(${degrees})`;
           return style;
         });
@@ -248,14 +190,15 @@ export default {
       //invalidation.then(() => simulation.stop());
       //document.getElementById("mysvg").innerHTML = "";
       //simulation.stop();
-      document.getElementById("mysvg").append(svg.node());
+      //document.getElementById("mysvg").append(svg.node());
+      console.log(svg.node())
     }
   },
   data(){
     return {
       "nodes":[
         {
-          "id": "ROUTER_A",
+          "id": "ROUTER_A12345433333333333",
           "ip": "192.168.100.1",
           "bg": "#d4d4d4"
         },
@@ -270,7 +213,7 @@ export default {
           "bg": "#32a88b"
         },
         {
-          "id": "ROUTER_D",
+          "id": "ROUTER_D12345433333333333",
           "ip": "192.168.100.4",
           "bg": "#3232a8"
         },
@@ -297,37 +240,37 @@ export default {
       ],
       "links":[
         {
-          "source": "ROUTER_A",
+          "source": "ROUTER_A12345433333333333",
           "target": "ROUTER_B",
           "value": 1,
         },
         {
-          "source": "ROUTER_A",
+          "source": "ROUTER_A12345433333333333",
           "target": "ROUTER_C",
           "value": 2,
         },
         {
-          "source": "ROUTER_A",
-          "target": "ROUTER_D",
+          "source": "ROUTER_A12345433333333333",
+          "target": "ROUTER_D12345433333333333",
           "value": 3,
         },
         {
-          "source": "ROUTER_A",
+          "source": "ROUTER_A12345433333333333",
           "target": "ROUTER_E",
           "value": 4,
         },
         {
-          "source": "ROUTER_A",
+          "source": "ROUTER_A12345433333333333",
           "target": "ROUTER_H",
           "value": 1,
         },
         {
-          "source": "ROUTER_E",
+          "source": "ROUTER_A12345433333333333",
           "target": "ROUTER_F",
           "value": 5,
         },
         {
-          "source": "ROUTER_E",
+          "source": "ROUTER_A12345433333333333",
           "target": "ROUTER_G",
           "value": 6,
         }
