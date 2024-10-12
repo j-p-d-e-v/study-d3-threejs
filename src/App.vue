@@ -83,8 +83,8 @@ export default {
       .data(links)
       .enter()
       .append("text")
-      .text((d)=> "target: "+d.target.id )
-      .style("text-anchor","end")
+      .text((d)=> d.target.id )
+      .style("text-anchor","middle")
       .style("font-size","15px");
 
       let source_link_label = svg.append("g")
@@ -93,9 +93,9 @@ export default {
       .data(links)
       .enter()
       .append("text")
-      .text((d)=> "source: "+d.source.id )
+      .text((d)=> d.source.id )
       .style('font-weight', 'bold')
-      .style("text-anchor","end")
+      .style("text-anchor","middle")
       .style("font-size","15px");
 
       
@@ -131,6 +131,41 @@ export default {
         event.subject.fx = event.subject.x;
         event.subject.fy = event.subject.y;
       }
+
+      function getQuadrant(x,y){
+        if(x >= 0 && y >= 0){
+          // x positive, y positive
+          return 1;
+        }
+        else if(x < 0 && y >= 0){
+          // x negative, y positive
+          return 2;
+        }
+        else if(x < 0 && y < 0){
+          // x negative, y negative
+          return 3;
+        }
+        else if(x >= 0 && y < 0){
+          // x negative, y negative
+          return 4;
+        }
+        return null;
+      }
+      function flipDegrees(quandrant,degrees){
+        if(quandrant == 1){
+          return degrees = degrees - 90;
+        }
+        else if(quandrant == 2){
+          return degrees = degrees - 90;
+        }
+        else if(quandrant == 3){
+          return degrees = degrees - 180;
+        }
+        else if(quandrant == 4){
+          return degrees = degrees - 270;
+        }
+        return degrees;
+      }
       
 
       function ticked(){
@@ -144,33 +179,45 @@ export default {
         //target_link_label.attr("x",d => d.target.x).attr("y", d => d.target.y);
 
         target_link_label.attr("transform", d => {
-          let middle_x = (d.target.x + d.source.x) / 2;
-          let middle_y = (d.target.y + d.source.y) / 2;
 
           let delta_x = d.target.x - d.source.x;
           let delta_y = d.target.y - d.source.y;
-          let angle = Math.atan2(delta_y,delta_x) ;
+          let pos_x = d.target.x;
+          let pos_y = d.target.y;
+          let middle_x = (d.target.x + d.source.x) / 2;
+          let middle_y = (d.target.y + d.source.y) / 2;
+          let angle = Math.atan2(delta_y,delta_x);
           let degrees = angle * (180 /Math.PI);
-          if(d.source.id == "ROUTER_A" && d.target.id == "ROUTER_E"){
-            console.log("TARGET==========================================");
-            console.log(`Source ${ d.source.id}:`, d.source);
-            console.log(`Target ${ d.target.id}:`, d.target);
-            console.log(`delta_x`,delta_x);
-            console.log(`delta_y`,delta_y);
-            console.log(`D ${d.source.id} -> ${d.target.id}`,degrees);
-            console.log(`A ${d.source.id} -> ${d.target.id}`,angle);
-            console.log(`AS ${d.source.id} -> ${d.target.id}`,Math.atan2(d.target.y,d.target.x) );
-            console.log(`AT ${d.source.id} -> ${d.target.id}`,Math.atan2(d.source.y,d.source.x) );
-            console.log("=========================================TARGET");
+          //if(d.source.id == "ROUTER_A" && d.target.id == "ROUTER_E"){
+          //  console.log("TARGET==========================================");
+          //  console.log(`Source ${ d.source.id}:`, d.source);
+          //  console.log(`Target ${ d.target.id}:`, d.target);
+          //  console.log(`delta_x`,delta_x);
+          //  console.log(`delta_y`,delta_y);
+          //  console.log(`D ${d.source.id} -> ${d.target.id}`,degrees);
+          //  console.log(`A ${d.source.id} -> ${d.target.id}`,angle);
+          //  console.log(`AS ${d.source.id} -> ${d.target.id}`,Math.atan2(d.target.y,d.target.x) );
+          //  console.log(`AT ${d.source.id} -> ${d.target.id}`,Math.atan2(d.source.y,d.source.x) );
+          //  console.log("=========================================TARGET");
+          //}
+          if(degrees > 90 || degrees < -90){
+            degrees += 180;
           }
-          return `translate(${d.target.x},${d.target.y})rotate(${degrees})`;
+          pos_x = d.target.x + (d.target.x - d.source.x) * -0.25;
+          pos_y = d.target.y + (d.target.y - d.source.y) * -0.25;
+          let style = `translate(${pos_x},${pos_y}),rotate(${degrees})`;
+          return style;
         });
         source_link_label.attr("transform", d => {
           let delta_x = d.source.x - d.target.x;
           let delta_y = d.source.y - d.target.y;
-          let angle = Math.atan2(delta_y,delta_x) ;
+          let pos_x = d.source.x;
+          let pos_y = d.source.y;
+          let middle_x = (d.target.x + d.source.x) /2;
+          let middle_y = (d.target.y + d.source.y) /2;
+          let angle = Math.atan2(delta_y,delta_x);
           let degrees = angle * (180 /Math.PI);
-          if(d.source.id == "ROUTER_A" && d.target.id == "ROUTER_C"){
+          if(d.source.id == "ROUTER_A" && d.target.id == "ROUTER_D"){
 
             console.log("SOURCE==========================================");
             console.log(`Source ${ d.source.id}:`, d.source);
@@ -181,14 +228,17 @@ export default {
             console.log(`A ${d.source.id} -> ${d.target.id}`,angle);
             console.log(`AS ${d.source.id} -> ${d.target.id}`,Math.atan2(d.target.y,d.target.x) );
             console.log(`AT ${d.source.id} -> ${d.target.id}`,Math.atan2(d.source.y,d.source.x) );
-            degrees = degrees + 180;
-            console.log(d);
-            let i = d3.selectAll('text').select((x)=> d.index == x.index ? x : null );
+            console.log(`Quadrant ${d.source.id} -> ${d.target.id}`,getQuadrant(delta_x,delta_y));
+
             console.log("=========================================SOURCE");
-            
-          //degrees = degrees + 180; 
           }
-          return `translate(${d.source.x},${d.source.y})rotate(${degrees})`;
+            if(degrees > 90 || degrees < -90){
+              degrees += 180;
+            }
+            pos_x = d.source.x + ((d.target.x - d.source.x) * 0.25);
+            pos_y = d.source.y + ((d.target.y - d.source.y) * 0.25);
+          let style = `translate(${pos_x},${pos_y}),rotate(${degrees})`;
+          return style;
         });
       }
       console.log("target_link_label",target_link_label);
